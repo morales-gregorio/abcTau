@@ -1,18 +1,13 @@
 """
 Module for Bayesian model comparison.
 """
-
-
-from generative_models import *
-from basic_functions import *
-from preprocessing import *
-from distance_functions import *
-from summary_stats import *
 import numpy as np
 from scipy import stats
-
-
-
+# from generative_models import *
+# from basic_functions import *
+# from preprocessing import *
+# from distance_functions import *
+# from summary_stats import *
 
 
 def model_comp(real_data, deltaT, binSize, maxTimeLag, abc_results1, final_step1, abc_results2, final_step2,\
@@ -141,11 +136,9 @@ def gen_model_dist(data_sumStat, theta_accepted, numSamplesModelComp, numSamples
     d_all : 1d array
         distribution of errors (distances) for the given generative model.
     """
-    
     d_all = []
 
-    
-    if disp == None:
+    if disp is None:
         for s in range(numSamplesModelComp):
             # select a random sample from the multivariate Posterior
             print('Sample ', s)

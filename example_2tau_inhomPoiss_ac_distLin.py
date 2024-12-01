@@ -1,11 +1,3 @@
-# add the path to the abcTau package
-import sys
-sys.path.append('./abcTau')
-# import the package
-import abcTau 
-import numpy as np
-from scipy import stats
-
 # stetting the number of cores for each numpy computation in multiprocessing
 # uncomment if you don't want numy to use more cores than what specified by multiprocessing
 import os
@@ -14,6 +6,14 @@ os.environ["OPENBLAS_NUM_THREADS"] = "2"
 os.environ["MKL_NUM_THREADS"] = "2" 
 os.environ["VECLIB_MAXIMUM_THREADS"] = "2" 
 os.environ["NUMEXPR_NUM_THREADS"] = "2" 
+
+# add the path to the abcTau package
+import sys
+sys.path.append('./abcTau')
+# import the package
+import abcTau 
+import numpy as np
+from scipy import stats
     
     
 # path for loading and saving data
@@ -90,7 +90,7 @@ class MyModel(abcTau.Model):
     # Choose autocorrelation computation method (from basic_functions)
     def generate_data(self, theta):
         # generate synthetic data
-        if disp == None:
+        if disp is None:
             syn_data, numBinData =  eval('abcTau.generative_models.' + generativeModel + \
                                          '(theta, deltaT, binSize, T, numTrials, data_mean, data_var)')
         else:
@@ -116,7 +116,7 @@ class MyModel(abcTau.Model):
         return d
     
 # fit with aABC algorithm for the two-timescales generative model
-abc_results, final_step = abcTau.fit.fit_withABC_2Tau(MyModel, data_sumStat, priorDist, inter_save_direc,\
-                                                      inter_filename,\
-                                                 datasave_path,filenameSave, epsilon_0, min_samples, \
-                                                 steps, minAccRate, parallel, n_procs, disp)
+abc_results, final_step = abcTau.fit.fit_withABC(MyModel, data_sumStat, priorDist, inter_save_direc,
+                                                 inter_filename, datasave_path,filenameSave, 
+                                                 epsilon_0, min_samples, steps, minAccRate, parallel,
+                                                 n_procs, disp, case='2Tau')

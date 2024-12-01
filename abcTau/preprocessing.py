@@ -1,21 +1,17 @@
 """
 Module for extracting statistics from data and running the preprocessing function.
 """
-
-
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import scipy.stats as stats
-from generative_models import *
-from basic_functions import *
-from distance_functions import *
-from summary_stats import *
+from basic_functions import binData
+from summary_stats import comp_cc, comp_sumStat
+# from generative_models import *
+# from distance_functions import *
 
 
-
-
-def extract_stats(data, deltaT, binSize, summStat_metric, ifNorm, maxTimeLag = None):
+def extract_stats(data, deltaT, binSize, summStat_metric, ifNorm, maxTimeLag=None):
     """Extract required statistics from data for ABC fitting.
     
     Parameters
@@ -53,22 +49,19 @@ def extract_stats(data, deltaT, binSize, summStat_metric, ifNorm, maxTimeLag = N
         maximum time-lag used for computing the autocorrelation.
 
     """
-    
     # extract duration and number of trials
     numTrials, numTimePoints = np.shape(data)
     T = numTimePoints* deltaT
 
-
-    
     # bin data
     binsData =  np.arange(0, T + binSize, binSize)
     numBinData = len(binsData)-1
     binned_data = binData(data, [numTrials,numBinData]) * deltaT
-    
-    # compute mean and variance 
+
+    # compute mean and variance
     data_mean = np.mean(binned_data)
     data_var = comp_cc(binned_data, binned_data, 1, binSize, numBinData)[0]
-    
+
 #     older version, had problems when deltaT>1
 #     bin_var = 1
 #     binsData_var =  np.arange(0, T + bin_var, bin_var)
@@ -76,16 +69,19 @@ def extract_stats(data, deltaT, binSize, summStat_metric, ifNorm, maxTimeLag = N
 #     binned_data_var = binData(data, [numTrials,numBinData_var]) * deltaT
 #     data_mean = np.mean(binned_data_var)/bin_var
 #     data_var = comp_cc(binned_data_var, binned_data_var, 1, bin_var, numBinData_var)[0]
-    
-    sumStat = comp_sumStat(binned_data, summStat_metric, ifNorm, deltaT, binSize, T, numBinData, maxTimeLag)
-    
+
+    sumStat = comp_sumStat(binned_data, summStat_metric, ifNorm, deltaT,
+                           binSize, T, numBinData, maxTimeLag)
+
     return sumStat, data_mean, data_var, T, numTrials
 
-    
-    
-def compute_spikesDisperssion_twoTau(ac_data, theta, deltaT, binSize, T, numTrials, data_mean, data_var,\
-                             min_disp, max_disp, jump_disp, borderline_jump, numIter):
-    """Compute the disperssion parameter of spike counts from the autocorrelation of 
+
+def compute_spikesDisperssion_twoTau(ac_data, theta, deltaT, binSize, T,
+                                     numTrials, data_mean, data_var,
+                                     min_disp, max_disp, jump_disp,
+                                     borderline_jump, numIter):
+    """
+    Compute the disperssion parameter of spike counts from the autocorrelation of 
     a doubly stochastic process with two timescale using grid search method.
     
     Parameters
@@ -122,10 +118,9 @@ def compute_spikesDisperssion_twoTau(ac_data, theta, deltaT, binSize, T, numTria
         estimated value of disperssion.
 
     """
-    
-    disp_range = np.arange(min_disp, max_disp, jump_disp)    
+    disp_range = np.arange(min_disp, max_disp, jump_disp)
     maxTimeLag = 2
-   
+
     min_border = 0
     max_border = 0
     border_line = 1
@@ -138,8 +133,8 @@ def compute_spikesDisperssion_twoTau(ac_data, theta, deltaT, binSize, T, numTria
         for disp in disp_range:
             print(disp)
             error_sum = 0
-            for i in range(numIter):
-                data_syn, numBinData = twoTauOU_gammaSpikes(theta, deltaT, binSize, T, numTrials, data_mean,\
+            for _ in range(numIter):
+                data_syn, numBinData = twoTauOU_gammaSpikes(theta, deltaT, binSize, T, numTrials, data_mean,
                                                             data_var, disp)
                 ac_syn = comp_cc(data_syn, data_syn, maxTimeLag, binSize, numBinData)
                 error_sum = error_sum + abs(ac_syn[1] - ac_data[1])
@@ -147,19 +142,18 @@ def compute_spikesDisperssion_twoTau(ac_data, theta, deltaT, binSize, T, numTria
             error_all.append(error_sum)
         error_all = np.array(error_all)
         disp_estim = disp_range[np.argmin((error_all))]
-   
 
         if disp_estim == disp_range[0]:
-                min_border = 1
-                min_disp, max_disp = min_disp - borderline_jump * jump_disp, min_disp + jump_disp
+            min_border = 1
+            min_disp, max_disp = min_disp - borderline_jump * jump_disp, min_disp + jump_disp
 
         elif  disp_estim == disp_range[-1]:
-                max_border = 1
-                min_disp, max_disp = max_disp - jump_disp, max_disp + borderline_jump * jump_disp
+            max_border = 1
+            min_disp, max_disp = max_disp - jump_disp, max_disp + borderline_jump * jump_disp
 
         else:
             border_line = 0
-        
+
     return disp_estim
 
 
@@ -202,10 +196,9 @@ def compute_spikesDisperssion_oneTau(ac_data, theta, deltaT, binSize, T, numTria
         estimated value of disperssion.
 
     """
-    
     disp_range = np.arange(min_disp, max_disp, jump_disp)    
     maxTimeLag = 2
-  
+
     min_border = 0
     max_border = 0
     border_line = 1
@@ -218,7 +211,7 @@ def compute_spikesDisperssion_oneTau(ac_data, theta, deltaT, binSize, T, numTria
         for disp in disp_range:
             print(disp)
             error_sum = 0
-            for i in range(numIter):
+            for _ in range(numIter):
                 data_syn, numBinData = oneTauOU_gammaSpikes(theta, deltaT, binSize, T, numTrials, data_mean,\
                                                             data_var, disp)
                 ac_syn = comp_cc(data_syn, data_syn, maxTimeLag, binSize, numBinData)
@@ -227,19 +220,18 @@ def compute_spikesDisperssion_oneTau(ac_data, theta, deltaT, binSize, T, numTria
             error_all.append(error_sum)
         error_all = np.array(error_all)
         disp_estim = disp_range[np.argmin((error_all))]
-   
 
         if disp_estim == disp_range[0]:
-                min_border = 1
-                min_disp, max_disp = min_disp - borderline_jump * jump_disp, min_disp + jump_disp
+            min_border = 1
+            min_disp, max_disp = min_disp - borderline_jump * jump_disp, min_disp + jump_disp
 
         elif  disp_estim == disp_range[-1]:
-                max_border = 1
-                min_disp, max_disp = max_disp - jump_disp, max_disp + borderline_jump * jump_disp
+            max_border = 1
+            min_disp, max_disp = max_disp - jump_disp, max_disp + borderline_jump * jump_disp
 
         else:
             border_line = 0
-        
+
     return disp_estim
 
 
@@ -285,12 +277,12 @@ def check_expEstimates(theta, deltaT, binSize, T, numTrials, data_mean, data_var
     """
     if numTimescales > 2:
         raise ValueError('Function is not designed for more than two timescales.')
-        
+
     if numTimescales == 2:
         tau1_exp = []
         tau2_exp = []
-        for i in range(numIter):
-            data_syn, numBinData = twoTauOU(theta, deltaT, binSize, T, numTrials, data_mean, data_var)
+        for _ in range(numIter):
+            data_syn, _ = twoTauOU(theta, deltaT, binSize, T, numTrials, data_mean, data_var)
             ac_syn = comp_ac_fft(data_syn)
             lm = round(maxTimeLag/binSize)
             ac_syn = ac_syn[0:lm]
@@ -298,12 +290,12 @@ def check_expEstimates(theta, deltaT, binSize, T, numTrials, data_mean, data_var
             # fit exponentials
             xdata = np.arange(0, maxTimeLag , binSize)
             ydata = ac_syn
-            popt, pcov = curve_fit(double_exp, xdata, ydata, maxfev = 2000)
+            popt, _ = curve_fit(double_exp, xdata, ydata, maxfev=2000)
             taus = np.sort(popt[1:3])
             tau1_exp.append(taus[0])
             tau2_exp.append(taus[1])
         taus_bs = np.array([tau1_exp, tau2_exp])
-        
+
         # compute the bootstrap error and do bias correction
         tau1_bs_corr = tau1_exp + 2*(theta[0] - np.mean(tau1_exp))
         x1 = np.mean(tau1_exp) 
@@ -313,50 +305,50 @@ def check_expEstimates(theta, deltaT, binSize, T, numTrials, data_mean, data_var
         x1 = np.mean(tau2_exp) 
         x2 = theta[1]   
         err2 = int(((x2-x1)/x1)*100)
-        
+
         taus_bs_corr = np.array([tau1_bs_corr, tau2_bs_corr])
         err = np.array([err1, err2])
-        
+
         print('first timescale: ', str(err1)+ '% bootstrap-error')
         print('second timescale: ', str(err2)+ '% bootstrap-error')
         print('The true errors from the ground truths can be larger')
-        
-        
+
         if plot_it:
-            plt.figure(figsize = (20,6))
+            plt.figure(figsize=(20, 6))
             ax = plt.subplot(121)
-            plt.hist(tau1_exp, color = 'm', label = 'Parametric bootstrap',  density = True)    
-            plt.hist(tau1_bs_corr, ec = 'm', fc = 'w',label = 'Bootstrap bias-corrected', density = True)
-            plt.axvline(theta[0], color = 'c', label = 'Direct fit')                        
-            
+            plt.hist(tau1_exp, color='m', label='Parametric bootstrap',  density=True)
+            plt.hist(tau1_bs_corr, ec='m', fc='w',label='Bootstrap bias-corrected',
+                     density=True)
+            plt.axvline(theta[0], color='c', label='Direct fit')
+
             plt.xlabel('Timescale')
             plt.ylabel('Probability density')
-            
+
             ax.spines['right'].set_visible(False)
             ax.spines['top'].set_visible(False)
             ax.yaxis.set_ticks_position('left')
-            ax.xaxis.set_ticks_position('bottom')  
-            
-            
+            ax.xaxis.set_ticks_position('bottom')
+
             ax = plt.subplot(122)
-            plt.hist(tau2_exp, color = 'm', label = 'Parametric bootstrap',  density = True)    
-            plt.hist(tau2_bs_corr, ec = 'm', fc = 'w',label = 'Bootstrap bias-corrected', density = True)
-            plt.axvline(theta[1], color = 'c', label = 'Direct fit')                        
-            
+            plt.hist(tau2_exp, color='m', label='Parametric bootstrap',  density=True)
+            plt.hist(tau2_bs_corr, ec='m', fc='w',label='Bootstrap bias-corrected',
+                     density=True)
+            plt.axvline(theta[1], color='c', label='Direct fit')
+
             plt.xlabel('Timescale')
-            plt.legend(frameon = False, loc = 'upper right', bbox_to_anchor=(1.7,.95), handlelength= 0.7, handletextpad=0.3)
+            plt.legend(frameon=False, loc='upper right', bbox_to_anchor=(1.7,.95),
+                       handlelength=0.7, handletextpad=0.3)
 
             ax.spines['right'].set_visible(False)
             ax.spines['top'].set_visible(False)
             ax.yaxis.set_ticks_position('left')
-            ax.xaxis.set_ticks_position('bottom')  
-
-
+            ax.xaxis.set_ticks_position('bottom')
 
     if numTimescales == 1:
+        # XXX Massive code repetition here
         tau_exp = []
-        for i in range(numIter):
-            data_syn, numBinData = oneTauOU(theta, deltaT, binSize, T, numTrials, data_mean, data_var)
+        for _ in range(numIter):
+            data_syn, _ = oneTauOU(theta, deltaT, binSize, T, numTrials, data_mean, data_var)
             ac_syn = comp_ac_fft(data_syn)
             lm = round(maxTimeLag/binSize)
             ac_syn = ac_syn[0:lm]
@@ -364,34 +356,35 @@ def check_expEstimates(theta, deltaT, binSize, T, numTrials, data_mean, data_var
             # fit exponentials
             xdata = np.arange(0, maxTimeLag , binSize)
             ydata = ac_syn
-            popt, pcov = curve_fit(single_exp, xdata, ydata, maxfev = 2000)
+            popt, _ = curve_fit(single_exp, xdata, ydata, maxfev = 2000)
             tau_exp.append(popt[1])
         taus_bs = np.array(tau_exp)
         taus_bs_corr = taus_bs + 2*(theta[0] - np.mean(taus_bs))
-        x1 = np.mean(taus_bs) 
-        x2 = theta[0]   
+        x1 = np.mean(taus_bs)
+        x2 = theta[0]
         err = int(((x2-x1)/x1)*100)
         print(str(err)+ '% bootstrap-error')
         print('The true error from the ground truth can be larger')
 
         if plot_it:
-            plt.figure(figsize = (9,5))
+            plt.figure(figsize=(9, 5))
             ax = plt.subplot(111)
-            plt.hist(taus_bs, color = 'm', label = 'Parametric bootstrap',  density = True)    
-            plt.hist(taus_bs_corr, ec = 'm', fc = 'w',label = 'Bootstrap bias-corrected', density = True)
-            plt.axvline(theta[0], color = 'c', label = 'Direct fit')                        
-            
+            plt.hist(taus_bs, color='m', label='Parametric bootstrap',  density=True)
+            plt.hist(taus_bs_corr, ec='m', fc='w',
+                     label='Bootstrap bias-corrected', density=True)
+            plt.axvline(theta[0], color='c', label='Direct fit')
+
             plt.xlabel('Timescale')
             plt.ylabel('Probability density')
-            plt.legend(frameon = False, loc = 'upper right', bbox_to_anchor=(1.6,.95), handlelength= 0.7, handletextpad=0.3)
+            plt.legend(frameon=False, loc = 'upper right', bbox_to_anchor=(1.6, 0.95),
+                       handlelength=0.7, handletextpad=0.3)
 
             ax.spines['right'].set_visible(False)
             ax.spines['top'].set_visible(False)
             ax.yaxis.set_ticks_position('left')
-            ax.xaxis.set_ticks_position('bottom')   
+            ax.xaxis.set_ticks_position('bottom')
 
     return taus_bs, taus_bs_corr, err
-
 
 
 def fit_twoTauExponential(ac, binSize, maxTimeLag):
@@ -409,13 +402,12 @@ def fit_twoTauExponential(ac, binSize, maxTimeLag):
     Returns
     -------
     popt : 1d array
-        optimal values for the parameters: [amplitude, timescale1, timescale2, weight of the timescale1].
+        optimal values for the parameters: 
+        [amplitude, timescale1, timescale2, weight of the timescale1].
     pcov: 2d array
         estimated covariance of popt. The diagonals provide the variance of the parameter estimate. 
     
     """
-    
-
     # fit exponentials
     xdata = np.arange(0, maxTimeLag, binSize)
     ydata = ac
@@ -424,7 +416,8 @@ def fit_twoTauExponential(ac, binSize, maxTimeLag):
 
 
 def fit_oneTauExponential(ac, binSize, maxTimeLag):
-    """Fit the autocorrelation with a single exponential using non-linear least squares method.
+    """
+    Fit the autocorrelation with a single exponential using non-linear least squares method.
     
     Parameters
     -----------
@@ -443,8 +436,6 @@ def fit_oneTauExponential(ac, binSize, maxTimeLag):
         estimated covariance of popt. The diagonals provide the variance of the parameter estimate. 
     
     """
-    
-
     # fit exponentials
     xdata = np.arange(0, maxTimeLag, binSize)
     ydata = ac

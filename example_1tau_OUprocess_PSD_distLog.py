@@ -86,7 +86,7 @@ class MyModel(abcTau.Model):
     # Choose autocorrelation computation method (from basic_functions)
     def generate_data(self, theta):
         # generate synthetic data
-        if disp == None:
+        if disp is None:
             syn_data, numBinData =  eval('abcTau.generative_models.' + generativeModel + \
                                          '(theta, deltaT, binSize, T, numTrials, data_mean, data_var)')
         else:

@@ -1,7 +1,6 @@
 """
 Module containing basic functions for OU generation, binning, estimating MAPs, spike generation methods, etc.
 """
-
 import numpy as np
 from scipy import stats
 
@@ -28,17 +27,15 @@ def OU_gen(tau, D, deltaT, T, numTrials):
     ou : nd array
         array of generated OU process (numTrials * (T/deltaT)).
     """
-    
     numBin = int(T/deltaT)
     noise =  np.random.normal(loc=0,scale=1, size=(numTrials,numBin))
     ou = np.zeros((numTrials,numBin))
     ou[:,0] = noise[:,0]
     for iBin in range(1,numBin):
-        ou[:,iBin]  = ou[:,iBin-1] - (ou[:,iBin-1]/tau) * deltaT + np.sqrt(2*D*deltaT) * noise[:,iBin-1]
-        
+        ou[:,iBin]  = ou[:, iBin-1] - (ou[:, iBin-1]/tau) * deltaT + \
+                      np.sqrt(2*D*deltaT) * noise[:, iBin-1]
+
     return ou
-
-
 
 
 def gamma_sp(rate, disp):
@@ -64,7 +61,7 @@ def gamma_sp(rate, disp):
     where_are_NaNs = np.isnan(k)
     k[where_are_NaNs] = 1
     theta[where_are_NaNs] = 1
-    spCounts = np.random.gamma(shape = k, scale=theta)
+    spCounts = np.random.gamma(shape=k, scale=theta)
     spCounts[where_are_NaNs] = 0
     return spCounts
 
@@ -85,12 +82,11 @@ def gaussian_sp(rate, disp):
     spCounts : nd array
         spike counts (numTrials * numBin).
     """
-    
     spCounts = np.zeros(rate.shape)
     for tr in range(len(rate)):
-        spCounts[tr] = np.random.normal(loc = rate[tr],scale = np.sqrt(disp * rate[tr]))
+        spCounts[tr] = np.random.normal(loc=rate[tr], 
+                                        scale=np.sqrt(disp * rate[tr]))
     return spCounts
-
 
 
 def binData(data, new_shape):
@@ -108,15 +104,10 @@ def binData(data, new_shape):
     binned_data : nd array
         binned time-series (numTrials * numBin).
     """
-    
     shape = (new_shape[0], data.shape[0] // new_shape[0],
              new_shape[1], data.shape[1] // new_shape[1])
     binned_data = data.reshape(shape).sum(-1).sum(1)
     return binned_data
-
-
-
-
 
 
 def generateInhomPoisson_Thinning(rate, deltaT, T):
@@ -145,13 +136,13 @@ def generateInhomPoisson_Thinning(rate, deltaT, T):
     repeated_rmax = np.transpose(npmt.repmat(r_max, numSamples, 1))
     probThrslds = repeated_rmax/SF
     spikeTrain_hom = (np.random.rand(numTrials,numSamples)<probThrslds).astype(int)
-    
+
     # create rejection matrix
     rejectMat = ((rate/repeated_rmax) > np.random.rand(numTrials,numSamples)).astype(int)
-    
+
     #create inhom pois
-    spikeTrain_inhom = rejectMat * spikeTrain_hom 
-    return spikeTrain_inhom 
+    spikeTrain_inhom = rejectMat * spikeTrain_hom
+    return spikeTrain_inhom
 
 
 def find_MAP(theta_accepted, N):
@@ -160,7 +151,8 @@ def find_MAP(theta_accepted, N):
     Parameters
     -----------
     theta_accepted : nd array
-        array of accepted samples from the final step of the ABC: pmc_posterior[final_step - 1]['theta accepted']
+        array of accepted samples from the final step of 
+        the ABC: pmc_posterior[final_step - 1]['theta accepted']
     N : float
         number samples for grid search.    
     
@@ -170,7 +162,6 @@ def find_MAP(theta_accepted, N):
     theta_map : 1d array
         MAP estimates of the parameters.
     """
-    
     numParams = len(theta_accepted)
     kernel = stats.gaussian_kde(theta_accepted)
 
@@ -210,6 +201,7 @@ def double_exp(time, a, tau1, tau2, coeff):
     exp_func = a * (coeff) * np.exp(-time/tau1) + a * (1-coeff) * np.exp(-time/tau2)
     return  exp_func
 
+
 def single_exp(time, a, tau):
     """a single expoenetial decay function.
 
@@ -228,6 +220,5 @@ def single_exp(time, a, tau):
     exp_func : 1d array
         single expoenetial decay function.
     """
-    exp_func = a * np.exp(-time/tau) 
+    exp_func = a * np.exp(-time/tau)
     return exp_func
-

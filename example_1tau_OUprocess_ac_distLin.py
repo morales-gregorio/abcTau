@@ -1,19 +1,21 @@
+import os
+
+# stetting the number of cores for each numpy computation in multiprocessing
+# uncomment if you don't want numy to use more cores than what specified by multiprocessing
+os.environ["OMP_NUM_THREADS"] = "2"
+os.environ["OPENBLAS_NUM_THREADS"] = "2"
+os.environ["MKL_NUM_THREADS"] = "2"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "2"
+os.environ["NUMEXPR_NUM_THREADS"] = "2"
+
 # add the path to the abcTau package
+# XXX this is such a terrible way to do it
 import sys
 sys.path.append('./abcTau')
-# import the package
-import abcTau 
+import abcTau
+
 import numpy as np
 from scipy import stats
-
-# stetting the number of cores for each numpy computation in multiprocessing 
-# uncomment if you don't want numy to use more cores than what specified by multiprocessing
-import os
-os.environ["OMP_NUM_THREADS"] = "2" 
-os.environ["OPENBLAS_NUM_THREADS"] = "2" 
-os.environ["MKL_NUM_THREADS"] = "2" 
-os.environ["VECLIB_MAXIMUM_THREADS"] = "2" 
-os.environ["NUMEXPR_NUM_THREADS"] = "2" 
 
 # path for loading and saving data
 datasave_path = './example_abc_results/'
@@ -39,8 +41,8 @@ deltaT = 1 # temporal resolution of data.
 binSize = 1 #  bin-size for binning data and computing the autocorrelation.
 disp = None # put the disperssion parameter if computed with grid-search
 maxTimeLag = 500 # only used when suing autocorrelation for summary statistics
-data_sumStat, data_mean, data_var, T, numTrials =  abcTau.preprocessing.extract_stats(data_load, deltaT, binSize,\
-                                                                                  summStat_metric, ifNorm, maxTimeLag)
+data_sumStat, data_mean, data_var, T, numTrials =  abcTau.preprocessing.extract_stats(data_load, deltaT, binSize,
+                                                                                      summStat_metric, ifNorm, maxTimeLag)
 
 # Define a uniform prior distribution over the given range
 # for a uniform prior: stats.uniform(loc=x_min,scale=x_max-x_min)
@@ -58,16 +60,16 @@ min_samples = 100 # min samples from the posterior
 steps = 60 # max number of iterations
 minAccRate = 0.01 # minimum acceptance rate to stop the iterations
 parallel = True # if parallel processing
-n_procs = 20 # number of processor for parallel processing (set to 1 if there is no parallel processing)
+n_procs = 4 # number of processes
 
 # creating model object
 class MyModel(abcTau.Model):
 
-    #This method initializes the model object.  
+    #This method initializes the model object.
     def __init__(self):
         pass
 
-    # draw samples from the prior. 
+    # draw samples from the prior.
     def draw_theta(self):
         theta = []
         for p in self.prior:
@@ -78,13 +80,13 @@ class MyModel(abcTau.Model):
     # Choose autocorrelation computation method (from basic_functions)
     def generate_data(self, theta):
         # generate synthetic data
-        if disp == None:
-            syn_data, numBinData =  eval('abcTau.generative_models.' + generativeModel + \
-                                         '(theta, deltaT, binSize, T, numTrials, data_mean, data_var)')
+        if disp is None:
+            syn_data, numBinData = eval('abcTau.generative_models.' + generativeModel + \
+                                        '(theta, deltaT, binSize, T, numTrials, data_mean, data_var)')
         else:
-            syn_data, numBinData =  eval('abcTau.generative_models.' + generativeModel + \
-                                         '(theta, deltaT, binSize, T, numTrials, data_mean, data_var, disp)')
-               
+            syn_data, numBinData = eval('abcTau.generative_models.' + generativeModel + \
+                                        '(theta, deltaT, binSize, T, numTrials, data_mean, data_var, disp)')
+
         # compute the summary statistics
         syn_sumStat = abcTau.summary_stats.comp_sumStat(syn_data, summStat_metric, ifNorm, \
                                                         deltaT, binSize, T, numBinData, maxTimeLag)   
@@ -102,8 +104,10 @@ class MyModel(abcTau.Model):
         else:
             d = eval('abcTau.distance_functions.' +distFunc + '(data, synth_data)')        
         return d
-    
+
 # fit with aABC algorithm for any generative model
-abc_results, final_step = abcTau.fit.fit_withABC(MyModel, data_sumStat, priorDist, inter_save_direc, inter_filename,\
-                                                 datasave_path,filenameSave, epsilon_0, min_samples, \
-                                                 steps, minAccRate, parallel, n_procs, disp)
+abc_results, final_step = abcTau.fit.fit_withABC(MyModel, data_sumStat, priorDist,
+                                                 inter_save_direc, inter_filename,
+                                                 datasave_path, filenameSave, epsilon_0,
+                                                 min_samples, steps, minAccRate,
+                                                 parallel, n_procs, disp)
