@@ -1,8 +1,9 @@
 """
 Module for Bayesian model comparison.
 """
+
 import numpy as np
-from scipy import stats
+
 # from generative_models import *
 # from basic_functions import *
 # from preprocessing import *
@@ -10,21 +11,37 @@ from scipy import stats
 # from summary_stats import *
 
 
-def model_comp(real_data, deltaT, binSize, maxTimeLag, abc_results1, final_step1, abc_results2, final_step2,\
-              model1, model2, distFunc, summStat_metric, ifNorm,\
-                  numSamplesModelComp, eval_start = 3, disp1 = None, disp2 = None):
+def model_comp(
+    real_data,
+    dt,
+    binsize,
+    max_lag,
+    abc_results1,
+    final_step1,
+    abc_results2,
+    final_step2,
+    model1,
+    model2,
+    distance_func,
+    summary_metric,
+    normalize,
+    numSamplesModelComp,
+    eval_start=3,
+    disp1=None,
+    disp2=None,
+):
     """Perform Baysian model comparison with ABC fits from model1 and model2.
-    
+
     Parameters
     -----------
     real_data : nd array
-        time-series of continous data, e.g., OU process, (numTrials * numTimePoints)
-        or binned spike counts (numTrials * numBin).
-    deltaT : float
-        temporal resolution of data (or binSize of spike counts).
-    binSize : float
+        time-series of continous data, e.g., OU process, (n_trials * n_timepoints)
+        or binned spike counts (n_trials * n_bins).
+    dt : float
+        temporal resolution of data (or binsize of spike counts).
+    binsize : float
         bin-size for computing the autocorrelation.
-    maxTimeLag : float
+    max_lag : float
         maximum time-lag for computing the autocorrelation.
     abc_results1: object
         output of fitting model1 with aABC algorithm.
@@ -38,11 +55,11 @@ def model_comp(real_data, deltaT, binSize, maxTimeLag, abc_results1, final_step1
         selected generative model for model1 (from generative models list).
     model2: string
         selected generative model for model2 (from generative models list).
-    distFunc: string
+    distance_func: string
         'linear_distance' or 'logarithmic_distance'.
-    summStat_metric : string
+    summary_metric : string
         metric for computing summay statistics ('comp_cc', 'comp_ac_fft', 'comp_psd').
-    ifNorm : string
+    normalize : string
         if normalize the autocorrelation or PSD.
     numSamplesModelComp: int
         number of samples from posterior distributions to compute the Bayes factor.
@@ -52,7 +69,6 @@ def model_comp(real_data, deltaT, binSize, maxTimeLag, abc_results1, final_step1
         The value of dispersion parameter if computed with the grid search method for model1.
     disp2 : float, default None
         The value of dispersion parameter if computed with the grid search method for model2.
-    
 
     Returns
     -------
@@ -69,39 +85,86 @@ def model_comp(real_data, deltaT, binSize, maxTimeLag, abc_results1, final_step1
     bf : 1d array
         Bayes factors for each error threshold in "err_threshs" (CDF_M2/CDF_M1).
     """
-    
     # extract abc fits
-    theta_accepted1 = abc_results1[final_step1 - 1]['theta accepted']
-    theta_accepted2 = abc_results2[final_step2 - 1]['theta accepted']
+    theta_accepted1 = abc_results1[final_step1 - 1]["theta accepted"]
+    theta_accepted2 = abc_results2[final_step2 - 1]["theta accepted"]
 
     # extract real data statistics
-    data_sumStat, data_mean, data_var, T, numTrials = extract_stats(real_data, deltaT, binSize,\
-                                                                                  summStat_metric, ifNorm, maxTimeLag)
-    
+    data_summary, data_mean, data_var, T, n_trials = extract_stats(
+        real_data, dt, binsize, summary_metric, normalize, max_lag
+    )
+
     # compute distances
-    numSamplesPosterior1 = len(theta_accepted1[0])
-    numSamplesPosterior2 = len(theta_accepted2[0]) 
-    print('Computing distances for model1:')
-    d1 = gen_model_dist(data_sumStat, theta_accepted1, numSamplesModelComp, numSamplesPosterior1, model1, distFunc,\
-                   summStat_metric, ifNorm, deltaT, binSize, T, numTrials, data_mean, data_var, maxTimeLag, disp1)
-    print('Computing distances for model2:')
-    d2 = gen_model_dist(data_sumStat, theta_accepted2, numSamplesModelComp, numSamplesPosterior2, model2, distFunc,\
-                   summStat_metric, ifNorm, deltaT, binSize, T, numTrials, data_mean, data_var, maxTimeLag, disp2)
-    
-    # compute CDFs and Bayes factors    
+    n_samples_post1 = len(theta_accepted1[0])
+    n_samples_post2 = len(theta_accepted2[0])
+    print("Computing distances for model1:")
+    d1 = gen_model_dist(
+        data_summary,
+        theta_accepted1,
+        numSamplesModelComp,
+        n_samples_post1,
+        model1,
+        distance_func,
+        summary_metric,
+        normalize,
+        dt,
+        binsize,
+        T,
+        n_trials,
+        data_mean,
+        data_var,
+        max_lag,
+        disp1,
+    )
+    print("Computing distances for model2:")
+    d2 = gen_model_dist(
+        data_summary,
+        theta_accepted2,
+        numSamplesModelComp,
+        n_samples_post2,
+        model2,
+        distance_func,
+        summary_metric,
+        normalize,
+        dt,
+        binsize,
+        T,
+        n_trials,
+        data_mean,
+        data_var,
+        max_lag,
+        disp2,
+    )
+
+    # compute CDFs and Bayes factors
     cdf1, cdf2, eval_points, bf = comp_cdf(d1, d2, numSamplesModelComp, eval_start)
     err_threshs = eval_points
     return d1, d2, cdf1, cdf2, err_threshs, bf
 
 
-def gen_model_dist(data_sumStat, theta_accepted, numSamplesModelComp, numSamplesPosterior, model, distFunc,\
-              summStat_metric, ifNorm, deltaT, binSize, T, numTrials, data_mean, data_var, maxTimeLag, disp = None):
-    
+def gen_model_dist(
+    data_summary,
+    theta_accepted,
+    numSamplesModelComp,
+    numSamplesPosterior,
+    model,
+    distance_func,
+    summary_metric,
+    normalize,
+    dt,
+    binsize,
+    T,
+    n_trials,
+    data_mean,
+    data_var,
+    max_lag,
+    disp=None,
+):
     """Compute distances for a given data autocorrelation and generative model.
-    
+
     Parameters
     -----------
-    data_sumStat : 1d array
+    data_summary : 1d array
         summary statistics of real data (autocorrelation or PSD).
     theta_accepted : nd array
         accepted samples in aABC Posteriors.
@@ -111,25 +174,25 @@ def gen_model_dist(data_sumStat, theta_accepted, numSamplesModelComp, numSamples
         number of samples for each parameter in aABC Posteriors.
     model: string
         selected generative model (from generative models list).
-    distFunc: string
+    distance_func: string
         'linear_distance' or 'logarithmic_distance'.
-    deltaT : float
-        temporal resolution of data (or binSize of spike counts).
-    binSize : float
+    dt : float
+        temporal resolution of data (or binsize of spike counts).
+    binsize : float
         bin-size for computing the autocorrelation.
     T : float
         duration of trials.
-    numTrials : float
+    n_trials : float
         number of trials.
     data_mean : float
-        mean value of data. 
+        mean value of data.
     data_var : float
         variance of data.
-    maxTimeLag : float
+    max_lag : float
         maximum time-lag for computing the autocorrelation.
     disp : float, default None
         The value of dispersion parameter if computed with the grid search method.
-    
+
 
     Returns
     -------
@@ -141,39 +204,45 @@ def gen_model_dist(data_sumStat, theta_accepted, numSamplesModelComp, numSamples
     if disp is None:
         for s in range(numSamplesModelComp):
             # select a random sample from the multivariate Posterior
-            print('Sample ', s)
+            print("Sample ", s)
             j = np.random.randint(numSamplesPosterior)
             theta = theta_accepted[:, j]
 
             # generate synthetic data
-            syn_data, numBinData =  eval(model + \
-                                         '(theta, deltaT, binSize, T, numTrials, data_mean, data_var)')
-            syn_sumStat = comp_sumStat(syn_data, summStat_metric, ifNorm, deltaT, binSize, T, numBinData, maxTimeLag)
-           
-            d = eval(distFunc + '(data_sumStat, syn_sumStat)')
+            syn_data, n_bin_data = eval(
+                model + "(theta, dt, binsize, T, n_trials, data_mean, data_var)"
+            )
+            syn_summary = comp_summary(
+                syn_data, summary_metric, normalize, dt, binsize, T, n_bin_data, max_lag
+            )
+
+            d = eval(distance_func + "(data_summary, syn_summary)")
             d_all.append(d)
-           
+
     else:
         for s in range(numSamplesModelComp):
             # select a random sample from the multivariate Posterior
-            print('Sample ', s)
+            print("Sample ", s)
             j = np.random.randint(numSamplesPosterior)
             theta = theta_accepted[:, j]
 
             # generate synthetic data
-            syn_data, numBinData =  eval(model + \
-                                         '(theta, deltaT, binSize, T, numTrials, data_mean, data_var, disp)')
-            syn_sumStat = comp_sumStat(syn_data, summStat_metric, ifNorm, deltaT, binSize, T, numBinData, maxTimeLag)
+            syn_data, n_bin_data = eval(
+                model + "(theta, dt, binsize, T, n_trials, data_mean, data_var, disp)"
+            )
+            syn_summary = comp_summary(
+                syn_data, summary_metric, normalize, dt, binsize, T, n_bin_data, max_lag
+            )
 
-            d = eval(distFunc + '(data_sumStat, syn_sumStat)')
+            d = eval(distance_func + "(data_summary, syn_summary)")
             d_all.append(d)
 
     return d_all
 
 
-def comp_cdf(d1,d2,num_samples,eval_start = 3):
+def comp_cdf(d1, d2, num_samples, eval_start=3):
     """Compute CDF of errors for fitted models.
-    
+
     Parameters
     -----------
     d1 : 1d array
@@ -184,7 +253,7 @@ def comp_cdf(d1,d2,num_samples,eval_start = 3):
         number of samples for each parameter in aABC Posteriors.
     eval_start : int, default 3
         defines the number of smallest errors we ignore before starting CDF computation.
-    
+
 
     Returns
     -------
@@ -197,22 +266,24 @@ def comp_cdf(d1,d2,num_samples,eval_start = 3):
     bf : 1d array
         Bayes factors for each error threshold in "err_threshs" (CDF_M2/CDF_M1).
     """
-    
+
     d1_sorted = np.sort(d1)
     d2_sorted = np.sort(d2)
-    eval_points = np.sort(np.unique(np.concatenate((d1_sorted[eval_start:],d2_sorted[eval_start:]))))
+    eval_points = np.sort(
+        np.unique(np.concatenate((d1_sorted[eval_start:], d2_sorted[eval_start:])))
+    )
     cdf1 = []
     cdf2 = []
     for i in range(len(eval_points)):
-        ind1 = np.where(d1_sorted<= eval_points[i])
+        ind1 = np.where(d1_sorted <= eval_points[i])
         if np.size(ind1):
-            cdf1.append((np.max(ind1)+1)/num_samples)
+            cdf1.append((np.max(ind1) + 1) / num_samples)
         else:
             cdf1.append(0)
-        ind2 = np.where(d2_sorted<= eval_points[i])
+        ind2 = np.where(d2_sorted <= eval_points[i])
         if np.size(ind2):
-            cdf2.append((np.max(ind2)+1)/num_samples)
+            cdf2.append((np.max(ind2) + 1) / num_samples)
         else:
             cdf2.append(0)
-    bf = np.array(cdf2)/np.array(cdf1)
+    bf = np.array(cdf2) / np.array(cdf1)
     return cdf1, cdf2, eval_points, bf

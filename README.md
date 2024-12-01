@@ -5,24 +5,24 @@
 
 abcTau is a Python package for unbiased estimation of timescales from autocorrelations or power spectrums using adaptive Approximate Bayesian Computations (aABC). This method overcomes the statistical bias in autocorrelations of finite data samples, which undermines the accuracy of conventional methods based on direct fitting of the autocorrelation with exponential decay functions.  abcTau overcomes the bias by fitting the sample autocorrelation or power spectrum with a generative model based on a mixture of Ornstein-Uhlenbeck (OU) processes. This way it accounts for finite sample size and noise in data and returns a posterior distribution of timescales, that quantifies the uncertainty of estimates and can be used to compare alternative hypotheses about the dynamics of the underlying process. This method can be applied to any time-series data such as spike counts in neuroscience.
 
-The details of the method are explained in:  
-Zeraati, R., Engel, T. A., & Levina, A. (2022). A flexible Bayesian framework for unbiased estimation of timescales. Nature Computational Science, 2(3), 193-204. https://doi.org/10.1038/s43588-022-00214-3  
+The details of the method are explained in:
+Zeraati, R., Engel, T. A., & Levina, A. (2022). A flexible Bayesian framework for unbiased estimation of timescales. Nature Computational Science, 2(3), 193-204. https://doi.org/10.1038/s43588-022-00214-3
 Please cite this paper (and if you can also the package DOI provided in the badge above) when you use this package for a scientific publication.
 
-You can find Demos on how to use abcTau for estimating timescales and performing Bayesian model comparison in the  Jupyter Notebook Tutorials 1 (fitting) and 2 (visualization and model comparison). These tutorials contain examples already used in figures 1, 3 and 5 of the paper above. The example data to test the package are available in `example_data` folder. The example outputs are available in `example_abc_results` and `example_modelComparison`. Three example python scripts are also available for running the package on a cluster with parallel processing. You can use the `check_expEstimates` function from the `preprocessing` module to check the bias in timescales estimated from exponential fits on your data.
+You can find Demos on how to use abcTau for estimating timescales and performing Bayesian model comparison in the  Jupyter Notebook Tutorials 1 (fitting) and 2 (visualization and model comparison). These tutorials contain examples already used in figures 1, 3 and 5 of the paper above. The example data to test the package are available in `example_data` folder. The example outputs are available in `example_abc_results` and `example_modelComparison`. Three example python scripts are also available for running the package on a cluster with parallel processing. You can use the `check_estimates` function from the `preprocessing` module to check the bias in timescales estimated from exponential fits on your data.
 
 
 Jupyter Notebooks that reproduce the paper figures are available in the `paper_figures_notebooks` folder.
 
 
-For a recent application of this method see:   
+For a recent application of this method see:
 Zeraati, R., Shi, Y., Steinmetz, N. A., Gieselmann, M. A., Thiele, A., Moore, T., Levina, A. & Engel, T. A. (2023). Intrinsic timescales in the visual cortex change with selective attention and reflect spatial connectivity. Nature communications, 14(1), 1858. https://doi.org/10.1038/s41467-023-37613-7
 
 
 
 
 The basis of aABC algorithm in this package is adapted from a previous implementation (originally developed in Python 2):
-Robert C. Morehead and Alex Hagen. A Python package for Approximate Bayesian Computation (2014). https://github.com/rcmorehead/simpleabc. 
+Robert C. Morehead and Alex Hagen. A Python package for Approximate Bayesian Computation (2014). https://github.com/rcmorehead/simpleabc.
 
 
 ## Operating system
@@ -33,8 +33,8 @@ Robert C. Morehead and Alex Hagen. A Python package for Approximate Bayesian Com
 
 ## Dependencies
 - Python >= 3.7.1
-- Numpy >= 1.15.4 
-- Scipy >= 1.1.0 
+- Numpy >= 1.15.4
+- Scipy >= 1.1.0
 
 
 ## Installation
@@ -52,13 +52,13 @@ The object-oriented implementation of the package allows users to easily replace
 ### List of available summary statistics (check `summary_stats.py` for details):
 Ordered from fastest to slowest fitting:
 - comp_psd: computing the power spectral density
-- comp_ac_fft: computing autocorrelation using FFT to speed up (more biased for direct fitting) 
+- comp_ac_fft: computing autocorrelation using FFT to speed up (more biased for direct fitting)
 - comp_cc: computing autocorrelation in the time domain (less biased for direct fitting)
 
 
 ### List of available generative models (check `generative_models.py` for details):
-- oneTauOU: one-timescale OU process 
-- twoTauOU: two-timescale OU process 
+- oneTauOU: one-timescale OU process
+- twoTauOU: two-timescale OU process
 - oneTauOU_oscil: one-timescale OU process with an additive oscillation
 - oneTauOU_twooscil: one-timescale OU process with two additive oscillations
 - oneTauOU_oneF: one-timescale OU process augmented with a 1/f background process (with variable exponent), in this function 1/f PSD can be replaced with any arbitrary PSD shape
